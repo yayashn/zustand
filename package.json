@@ -1,8 +1,9 @@
 {
   "name": "@rbxts/zustand",
-  "version": "0.0.1b",
+  "version": "0.0.1c",
   "main": "out/init.lua",
   "license": "MIT",
+  "homepage": "https://github.com/yayashn/zustand",
   "scripts": {
     "build": "rbxtsc",
     "watch": "rbxtsc -w",
