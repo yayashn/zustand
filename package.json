@@ -1,6 +1,6 @@
 {
   "name": "@rbxts/zustand",
-  "version": "0.0.1c",
+  "version": "0.0.2",
   "main": "out/init.lua",
   "license": "MIT",
   "homepage": "https://github.com/yayashn/zustand",

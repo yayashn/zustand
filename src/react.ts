@@ -12,6 +12,7 @@ import type {
   StoreMutatorIdentifier,
 } from './vanilla'
 import { useSyncExternalStoreWithSelector } from './useSyncExternalStoreWithSelector'
+import Object from '@rbxts/object-utils'
 
 type ExtractState<S> = S extends { getState: () => infer T } ? T : never
 
@@ -20,8 +21,6 @@ type ReadonlyStoreApi<T> = Pick<StoreApi<T>, 'getState' | 'subscribe'>
 type WithReact<S extends ReadonlyStoreApi<unknown>> = S & {
   getServerState?: () => ExtractState<S>
 }
-
-let didWarnAboutEqualityFn = false
 
 export function useStore<S extends WithReact<StoreApi<unknown>>>(
   api: S
@@ -70,38 +69,36 @@ export type UseBoundStore<S extends WithReact<ReadonlyStoreApi<unknown>>> = {
   ): U
 } & S
 
-type StoreWithBoundFunction<S extends WithReact<StoreApi<unknown>>> = {
-  store: UseBoundStore<S>;
-} & S;
-
 type Create = {
   <T, Mos extends [StoreMutatorIdentifier, unknown][] = []>(
     initializer: StateCreator<T, [], Mos>
-  ): StoreWithBoundFunction<Mutate<StoreApi<T>, Mos>>;
+  ): UseBoundStore<Mutate<StoreApi<T>, Mos>>
   <T>(): <Mos extends [StoreMutatorIdentifier, unknown][] = []>(
     initializer: StateCreator<T, [], Mos>
-  ) => StoreWithBoundFunction<Mutate<StoreApi<T>, Mos>>;
+  ) => UseBoundStore<Mutate<StoreApi<T>, Mos>>
   /**
    * @deprecated Use `useStore` hook to bind store
    */
-  <S extends StoreApi<unknown>>(store: S): StoreWithBoundFunction<S>;
-};
-
-const createImpl = <T>(createState: StateCreator<T, [], []> | WithReact<StoreApi<T>>): StoreWithBoundFunction<WithReact<StoreApi<T>>> => {
-  const api: WithReact<StoreApi<T>> = 
-    typeOf(createState) === 'function' 
-      ? createStore(createState as StateCreator<T, [], []>) 
-      : (createState as WithReact<StoreApi<T>>);
-
-  const useBoundStore: UseBoundStore<WithReact<StoreApi<T>>> = ((selector?: any, equalityFn?: any): any => 
-    useStore(api, selector, equalityFn)) as unknown as UseBoundStore<WithReact<StoreApi<T>>>;
-
-  return {
-    ...api,
-    store: useBoundStore
-  };
+  <S extends StoreApi<unknown>>(store: S): UseBoundStore<S>
 }
 
+const createImpl = <T>(createState: StateCreator<T, [], []>) => {
+  const api = 
+    (typeOf(createState) === 'function' 
+      ? createStore(createState as StateCreator<T, [], []>) 
+      : createState) as WithReact<StoreApi<unknown>>
+
+  const useBoundStore = {} as UseBoundStore<WithReact<StoreApi<T>>>
+
+  Object.assign(useBoundStore, api)
+
+  setmetatable(useBoundStore, {
+    __call: ((t, selector?: Callback, equalityFn?: Callback) => 
+    useStore(api, selector!, equalityFn)) as UseBoundStore<WithReact<StoreApi<T>>>
+  })
+
+  return useBoundStore
+}
 
 export const create = (<T>(createState: StateCreator<T, [], []> | undefined) =>
   createState ? createImpl(createState) : createImpl) as Create

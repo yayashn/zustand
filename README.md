@@ -34,12 +34,12 @@ Use the hook anywhere, no providers are needed. Select your state and the compon
 
 ```jsx
 function BearCounter() {
-  const bears = useBearStore.store((state) => state.bears)
+  const bears = useBearStore((state) => state.bears)
   return <textlabel Text={`${bears}`}/>
 }
 
 function Controls() {
-  const increasePopulation = useBearStore.store((state) => state.increasePopulation)
+  const increasePopulation = useBearStore((state) => state.increasePopulation)
   return <textbutton Event={{
     MouseButton1Click: () => {
         increasePopulation()
@@ -78,8 +78,8 @@ const state = useBearStore()
 It detects changes with strict-equality (old === new) by default, this is efficient for atomic state picks.
 
 ```jsx
-const nuts = useBearStore.store((state) => state.nuts)
-const honey = useBearStore.store((state) => state.honey)
+const nuts = useBearStore((state) => state.nuts)
+const honey = useBearStore((state) => state.honey)
 ```
 
 ## Using zustand without React (NOT TESTED)
