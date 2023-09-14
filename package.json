@@ -1,5 +1,5 @@
 {
-  "name": "@rbxts/rbxts-zustand",
+  "name": "@rbxts/zustand",
   "version": "0.0.1",
   "main": "out/init.lua",
   "license": "MIT",
