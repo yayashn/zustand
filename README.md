@@ -5,7 +5,7 @@ Port of Zustand for roblox-ts. Only tested for usage with @rbxts/react-ts, vanil
 A small, fast and scalable bearbones state-management solution using simplified flux principles. Has a comfy API based on hooks, isn't boilerplatey or opinionated.
 
 ```bash
-npm install zustand # or yarn add zustand or pnpm add zustand
+npm install @rbxts/zustand # or yarn add zustand or pnpm add zustand
 ```
 
 ## First create a store
