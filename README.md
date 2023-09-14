@@ -78,11 +78,11 @@ const state = useBearStore()
 It detects changes with strict-equality (old === new) by default, this is efficient for atomic state picks.
 
 ```jsx
-const nuts = useBearStore((state) => state.nuts)
-const honey = useBearStore((state) => state.honey)
+const nuts = useBearStore.store((state) => state.nuts)
+const honey = useBearStore.store((state) => state.honey)
 ```
 
-## Using zustand without React
+## Using zustand without React (NOT TESTED)
 
 Zustand core can be imported and used without the React dependency. The only difference is that the create function does not return a hook, but the API utilities.
 
