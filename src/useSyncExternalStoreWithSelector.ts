@@ -1,88 +1,77 @@
 import { useRef, useEffect, useMemo, useDebugValue } from "@rbxts/roact";
 import { useSyncExternalStore } from "./useSyncExternalStore";
+import { is } from "./object";
 
-const objectIs = rawequal
+type Selector<Snapshot, Selected> = (snapshot: Snapshot) => Selected;
+type EqualityFunction<Selected> = (left: Selected, right: Selected) => boolean;
 
-function useSyncExternalStoreWithSelector(subscribe: unknown, getSnapshot: Callback, getServerSnapshot: unknown, selector: Callback, isEqual: Callback) {
-    let inst: {
-        hasValue: boolean;
-        value: unknown;
-    };
-    const instRef = useRef<typeof inst>();
+type Inst<Selected> =
+	| {
+			hasValue: false;
+			value: undefined;
+	  }
+	| {
+			hasValue: true;
+			value: Selected;
+	  };
 
-    if (instRef.current === undefined) {
-        inst = {
-            hasValue: false,
-            value: undefined
-        };
-        instRef.current = inst;
-    } else {
-        inst = instRef.current;
-    }
+export function useSyncExternalStoreWithSelector<Snapshot, Selected>(
+	subscribe: (onStoreChange: () => void) => () => void,
+	getSnapshot: () => Snapshot,
+	selector: Selector<Snapshot, Selected>,
+	isEqual?: EqualityFunction<Selected>,
+) {
+	const instReference = useRef<Inst<Selected> | undefined>(undefined);
+	let inst: Inst<Selected>;
 
-    const [getSelection, getServerSelection] = useMemo(() => {
-        let hasMemo = false;
-        let memoizedSnapshot: unknown;
-        let memoizedSelection: unknown;
+	if (instReference.current === undefined) instReference.current = inst = { hasValue: false, value: undefined };
+	else inst = instReference.current;
 
-        const memoizedSelector = (nextSnapshot: unknown) => {
-            if (!hasMemo) {
-                hasMemo = true;
-                memoizedSnapshot = nextSnapshot;
-                const _nextSelection = selector(nextSnapshot);
+	const getSelection = useMemo(() => {
+		let hasMemo = false;
+		let memoizedSnapshot: Snapshot | undefined;
+		let memoizedSelection: Selected | undefined;
 
-                if (isEqual !== undefined) {
-                    if (inst.hasValue) {
-                        const currentSelection = inst.value;
+		const memoizedSelector: Selector<Snapshot, Selected> = (nextSnapshot) => {
+			if (!hasMemo) {
+				hasMemo = true;
+				memoizedSnapshot = nextSnapshot;
 
-                        if (isEqual(currentSelection, _nextSelection)) {
-                            memoizedSelection = currentSelection;
-                            return currentSelection;
-                        }
-                    }
-                }
+				const nextSelection = selector(nextSnapshot);
+				if (isEqual !== undefined && inst.hasValue === true) {
+					const currentSelection = inst.value;
+					if (isEqual(currentSelection, nextSelection)) {
+						memoizedSelection = currentSelection;
+						return currentSelection;
+					}
+				}
 
-                memoizedSelection = _nextSelection;
-                return _nextSelection;
-            }
+				memoizedSelection = nextSelection;
+				return nextSelection;
+			}
 
-            const prevSnapshot = memoizedSnapshot;
-            const prevSelection = memoizedSelection;
+			const previousSnapshot = memoizedSnapshot;
+			const previousSelection = memoizedSelection!;
+			if (is(previousSnapshot, nextSnapshot)) return previousSelection as Selected;
 
-            if (objectIs(prevSnapshot, nextSnapshot)) {
-                return prevSelection;
-            }
+			const nextSelection = selector(nextSnapshot);
+			if (isEqual?.(previousSelection as Selected, nextSelection)) return previousSelection as Selected;
 
-            const nextSelection = selector(nextSnapshot);
-            if (isEqual !== undefined && isEqual(prevSelection, nextSelection)) {
-                return prevSelection;
-            }
+			memoizedSnapshot = nextSnapshot;
+			memoizedSelection = nextSelection;
+			return nextSelection;
+		};
 
-            memoizedSnapshot = nextSnapshot;
-            memoizedSelection = nextSelection;
-            return nextSelection;
-        };
+		const getSnapshotWithSelector = (): Selected => memoizedSelector(getSnapshot());
+		return getSnapshotWithSelector;
+	}, [getSnapshot, selector, isEqual]);
 
-        const maybeGetServerSnapshot = getServerSnapshot === undefined ? undefined : getServerSnapshot;
+	const value = useSyncExternalStore(subscribe, getSelection);
+	useEffect(() => {
+		inst.hasValue = true;
+		inst.value = value;
+	}, [value]);
 
-        const getSnapshotWithSelector = () => {
-            return memoizedSelector(getSnapshot());
-        };
-
-        const getServerSnapshotWithSelector = maybeGetServerSnapshot === undefined ? undefined : () => {
-            return memoizedSelector((maybeGetServerSnapshot as Callback)());
-        };
-        return [getSnapshotWithSelector, getServerSnapshotWithSelector];
-    }, [getSnapshot, getServerSnapshot, selector, isEqual]);
-
-    const value = useSyncExternalStore(subscribe as (handler: () => void) => () => void, getSelection, getServerSelection);
-    useEffect(() => {
-        inst.hasValue = true;
-        inst.value = value;
-    }, [value]);
-
-    useDebugValue(value);
-    return value;
+	useDebugValue(value);
+	return value;
 }
-
-export { useSyncExternalStoreWithSelector };
