@@ -1,5 +1,5 @@
 declare interface ImportMeta {
-  env?: {
-    MODE: string
-  }
+	env?: {
+		MODE: string;
+	};
 }
